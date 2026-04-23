@@ -25,17 +25,11 @@ export function InvoiceCard({ invoice, currency, onPress, onDelete }: Props) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   function handlePressIn() {
-    Animated.spring(scaleAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true }).start();
   }
 
   function handlePressOut() {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }).start();
   }
 
   function handlePress() {
@@ -55,13 +49,19 @@ export function InvoiceCard({ invoice, currency, onPress, onDelete }: Props) {
     .join("");
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+    <Animated.View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border, transform: [{ scale: scaleAnim }] },
+      ]}
+    >
+      {/* Main press area — NOT wrapping the delete button */}
       <TouchableOpacity
-        activeOpacity={1}
+        activeOpacity={0.8}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
-        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={styles.pressArea}
       >
         <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
           <Text style={[styles.avatarText, { color: colors.primary }]}>{initials}</Text>
@@ -76,14 +76,18 @@ export function InvoiceCard({ invoice, currency, onPress, onDelete }: Props) {
           </Text>
         </View>
 
-        <View style={styles.right}>
-          <Text style={[styles.amount, { color: colors.primary }]}>
-            {formatCurrency(invoice.total, currency)}
-          </Text>
-          <TouchableOpacity onPress={handleDelete} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Feather name="trash-2" size={16} color={colors.mutedForeground} />
-          </TouchableOpacity>
-        </View>
+        <Text style={[styles.amount, { color: colors.primary }]}>
+          {formatCurrency(invoice.total, currency)}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Delete button — sibling of pressArea, NOT nested inside it */}
+      <TouchableOpacity
+        onPress={handleDelete}
+        style={styles.deleteBtn}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 4 }}
+      >
+        <Feather name="trash-2" size={16} color={colors.mutedForeground} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -93,11 +97,17 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
     marginHorizontal: 16,
     marginBottom: 10,
     borderRadius: 16,
     borderWidth: 1,
+    overflow: "hidden",
+  },
+  pressArea: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
     gap: 12,
   },
   avatar: {
@@ -124,13 +134,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Inter_400Regular",
   },
-  right: {
-    alignItems: "flex-end",
-    gap: 6,
-    flexShrink: 0,
-  },
   amount: {
     fontSize: 16,
     fontFamily: "Inter_700Bold",
+    flexShrink: 0,
+  },
+  deleteBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -122,23 +122,27 @@ export default function SettingsScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  function handleDeleteAll() {
-    Alert.alert(
-      "Delete All Data",
-      "This will permanently delete all invoices and reset the app. This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete All",
-          style: "destructive",
-          onPress: async () => {
-            if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await deleteAllData();
-            Alert.alert("Done", "All data has been deleted.");
-          },
-        },
-      ]
-    );
+  async function handleDeleteAll() {
+    const confirmed =
+      Platform.OS === "web"
+        ? window.confirm(
+            "This will permanently delete all invoices and reset the app. This cannot be undone."
+          )
+        : await new Promise<boolean>((resolve) => {
+            Alert.alert(
+              "Delete All Data",
+              "This will permanently delete all invoices and reset the app. This action cannot be undone.",
+              [
+                { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+                { text: "Delete All", style: "destructive", onPress: () => resolve(true) },
+              ],
+              { cancelable: true, onDismiss: () => resolve(false) }
+            );
+          });
+
+    if (!confirmed) return;
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    await deleteAllData();
   }
 
   const selectedCurrency = CURRENCIES.find((c) => c.code === defaultCurrency);

@@ -24,6 +24,12 @@ export default function HomeScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   function handleDelete(id: string) {
+    if (Platform.OS === "web") {
+      if (window.confirm("Delete this invoice? This cannot be undone.")) {
+        deleteInvoice(id);
+      }
+      return;
+    }
     Alert.alert("Delete Invoice", "Are you sure you want to delete this invoice?", [
       { text: "Cancel", style: "cancel" },
       {
