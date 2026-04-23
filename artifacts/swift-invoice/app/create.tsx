@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Invoice, InvoiceItem, useInvoice } from "@/context/InvoiceContext";
 import { useColors } from "@/hooks/useColors";
+import { CURRENCY_SYMBOLS } from "@/utils/pdfGenerator";
 
 function generateId() {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -107,11 +108,7 @@ export default function CreateScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const currencySymbols: Record<string, string> = {
-    USD: "$", EUR: "€", GBP: "£", JPY: "¥", CAD: "CA$",
-    AUD: "A$", CHF: "CHF", INR: "₹", BRL: "R$", MXN: "MX$",
-  };
-  const currencySymbol = currencySymbols[defaultCurrency] || defaultCurrency + " ";
+  const currencySymbol = CURRENCY_SYMBOLS[defaultCurrency] ?? defaultCurrency + " ";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

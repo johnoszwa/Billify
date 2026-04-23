@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "SwiftInvoice",
-    "slug": "swift-invoice",
+    "name": "Billify",
+    "slug": "billify",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "swift-invoice",
+    "scheme": "billify",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -14,9 +14,12 @@
       "backgroundColor": "#2563eb"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.billify.app"
     },
-    "android": {},
+    "android": {
+      "package": "com.billify.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },

@@ -139,12 +139,14 @@ export default function PreviewScreen() {
           </View>
 
           <View style={[styles.tableHeader, { backgroundColor: colors.muted }]}>
+            <Text style={[styles.colNum, { color: colors.mutedForeground }]}>#</Text>
             <Text style={[styles.colLabel, { color: colors.mutedForeground }]}>DESCRIPTION</Text>
             <Text style={[styles.colLabel, { color: colors.mutedForeground, textAlign: "right" }]}>AMOUNT</Text>
           </View>
 
           {invoice.items.map((item, i) => (
             <View key={item.id} style={[styles.itemRow, i < invoice.items.length - 1 ? { borderBottomWidth: 1, borderBottomColor: colors.border } : {}]}>
+              <Text style={[styles.itemNum, { color: colors.mutedForeground }]}>{i + 1}</Text>
               <Text style={[styles.itemDesc, { color: colors.foreground }]}>{item.description}</Text>
               <Text style={[styles.itemPrice, { color: colors.foreground }]}>
                 {formatCurrency(item.price, defaultCurrency)}
@@ -216,10 +218,12 @@ const styles = StyleSheet.create({
   billLabel: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 },
   clientName: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   clientEmail: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  tableHeader: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 24, paddingVertical: 10 },
-  colLabel: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase" },
-  itemRow: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 24, paddingVertical: 14, alignItems: "center" },
-  itemDesc: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", marginRight: 16 },
+  tableHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10 },
+  colNum: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", width: 32, textAlign: "center" },
+  colLabel: { flex: 1, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase" },
+  itemRow: { flexDirection: "row", paddingHorizontal: 16, paddingVertical: 14, alignItems: "center" },
+  itemNum: { width: 32, fontSize: 13, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  itemDesc: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", marginRight: 12 },
   itemPrice: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, paddingVertical: 18 },
   totalLabel: { fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase" },
