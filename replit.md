@@ -25,3 +25,29 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+
+## Artifacts
+
+### SwiftInvoice (artifacts/swift-invoice)
+- **Type**: Expo mobile app
+- **Preview path**: `/`
+- **Purpose**: Offline-first invoice generator MVP for freelancers and small businesses
+- **Features**:
+  - Create invoices with client details and line items
+  - Auto-calculate totals in real-time
+  - Local persistence via AsyncStorage (no backend)
+  - PDF generation via expo-print
+  - Share invoices via native share sheet (expo-sharing)
+  - Freemium model: free tier includes watermark, Pro tier removes it
+  - GDPR-compliant: all data local, "Delete All Data" option in settings
+  - Currency selector (10 currencies)
+  - Paywall screen with simulated Pro upgrade
+- **Key files**:
+  - `app/index.tsx` — Home screen (invoice list)
+  - `app/create.tsx` — Create/edit invoice form
+  - `app/preview.tsx` — Preview invoice + share/print
+  - `app/settings.tsx` — Settings (currency, data, upgrade)
+  - `app/paywall.tsx` — Pro upgrade screen
+  - `context/InvoiceContext.tsx` — Global state + AsyncStorage
+  - `utils/pdfGenerator.ts` — HTML template for PDF generation
+  - `constants/colors.ts` — Design tokens (blue primary palette)
