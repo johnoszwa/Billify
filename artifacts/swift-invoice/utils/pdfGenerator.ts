@@ -54,7 +54,7 @@ export function generatePDFHTML(
 
   const watermark = !isProUser
     ? `<div style="position: fixed; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 12px; color: #94a3b8; font-family: Inter, sans-serif;">
-        Generated with SwiftInvoice &bull; Upgrade to Pro to remove watermark
+        Generated with Billify &bull; Upgrade to Pro to remove watermark
       </div>`
     : "";
 
@@ -69,7 +69,6 @@ export function generatePDFHTML(
   .page { padding: 48px 56px; max-width: 700px; margin: 0 auto; min-height: 100vh; position: relative; }
   .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 48px; }
   .logo { font-size: 22px; font-weight: 700; color: #2563eb; letter-spacing: -0.5px; }
-  .logo span { color: #0f172a; }
   .invoice-meta { text-align: right; }
   .invoice-title { font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: -1px; margin-bottom: 6px; }
   .invoice-number { font-size: 13px; color: #64748b; margin-bottom: 2px; }
@@ -92,7 +91,7 @@ export function generatePDFHTML(
 <body>
 <div class="page">
   <div class="header">
-    <div class="logo">Swift<span>Invoice</span></div>
+    <div class="logo">Billify</div>
     <div class="invoice-meta">
       <div class="invoice-title">INVOICE</div>
       <div class="invoice-number">${escapeHtml(invoice.invoiceNumber)}</div>

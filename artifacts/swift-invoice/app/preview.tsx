@@ -119,7 +119,7 @@ export default function PreviewScreen() {
         <View style={[styles.invoiceCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.invoiceHeader}>
             <View>
-              <Text style={[styles.appName, { color: colors.primary }]}>SwiftInvoice</Text>
+              <Text style={[styles.appName, { color: colors.primary }]}>Billify</Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
               <Text style={[styles.invoiceLabel, { color: colors.foreground }]}>INVOICE</Text>
@@ -163,7 +163,7 @@ export default function PreviewScreen() {
 
           {!isProUser && (
             <Text style={[styles.watermark, { color: colors.mutedForeground }]}>
-              Generated with SwiftInvoice &bull; Upgrade to Pro to remove watermark
+              Generated with Billify &bull; Upgrade to Pro to remove watermark
             </Text>
           )}
         </View>

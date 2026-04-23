@@ -28,7 +28,7 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 
 ## Artifacts
 
-### SwiftInvoice (artifacts/swift-invoice)
+### Billify (artifacts/swift-invoice)
 - **Type**: Expo mobile app
 - **Preview path**: `/`
 - **Purpose**: Offline-first invoice generator MVP for freelancers and small businesses
