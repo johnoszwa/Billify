@@ -44,9 +44,11 @@ export function generatePDFHTML(
     .map(
       (item, i) => `
     <tr>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b; text-align: center; width: 44px;">${i + 1}</td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #64748b; text-align: center; width: 40px;">${i + 1}</td>
       <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155;">${escapeHtml(item.description)}</td>
-      <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; text-align: right; white-space: nowrap;">${formatCurrency(item.price, currency)}</td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #64748b; text-align: center; width: 60px;">${item.quantity ?? 1}</td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #64748b; text-align: right; width: 100px; white-space: nowrap;">${formatCurrency(item.unitPrice ?? item.price, currency)}</td>
+      <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; text-align: right; width: 110px; white-space: nowrap;">${formatCurrency(item.price, currency)}</td>
     </tr>
   `
     )
@@ -80,8 +82,9 @@ export function generatePDFHTML(
   .client-email { font-size: 14px; color: #64748b; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
   .table-header th { padding: 10px 16px; background: #f8fafc; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; text-align: left; }
-  .table-header th:first-child { text-align: center; width: 44px; }
-  .table-header th:last-child { text-align: right; }
+  .table-header th:first-child { text-align: center; width: 40px; }
+  .table-header th:nth-child(3) { text-align: center; width: 60px; }
+  .table-header th:nth-child(4), .table-header th:last-child { text-align: right; }
   .total-row td { padding: 16px; background: #f8fafc; }
   .total-label { font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
   .total-amount { font-size: 22px; font-weight: 800; color: #2563eb; text-align: right; letter-spacing: -0.5px; }
@@ -109,12 +112,16 @@ export function generatePDFHTML(
       <tr>
         <th>#</th>
         <th>Description</th>
+        <th>Qty</th>
+        <th>Unit Price</th>
         <th>Amount</th>
       </tr>
     </thead>
     <tbody>
       ${itemsRows}
       <tr class="total-row">
+        <td></td>
+        <td></td>
         <td></td>
         <td class="total-label">Total</td>
         <td class="total-amount">${formatCurrency(invoice.total, currency)}</td>

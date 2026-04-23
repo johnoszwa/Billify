@@ -140,15 +140,29 @@ export default function PreviewScreen() {
 
           <View style={[styles.tableHeader, { backgroundColor: colors.muted }]}>
             <Text style={[styles.colNum, { color: colors.mutedForeground }]}>#</Text>
-            <Text style={[styles.colLabel, { color: colors.mutedForeground }]}>DESCRIPTION</Text>
-            <Text style={[styles.colLabel, { color: colors.mutedForeground, textAlign: "right" }]}>AMOUNT</Text>
+            <Text style={[styles.colLabel, { color: colors.mutedForeground, flex: 2 }]}>DESCRIPTION</Text>
+            <Text style={[styles.colSmall, { color: colors.mutedForeground }]}>QTY</Text>
+            <Text style={[styles.colSmall, { color: colors.mutedForeground }]}>UNIT</Text>
+            <Text style={[styles.colAmount, { color: colors.mutedForeground }]}>AMOUNT</Text>
           </View>
 
           {invoice.items.map((item, i) => (
-            <View key={item.id} style={[styles.itemRow, i < invoice.items.length - 1 ? { borderBottomWidth: 1, borderBottomColor: colors.border } : {}]}>
+            <View
+              key={item.id}
+              style={[
+                styles.itemRow,
+                i < invoice.items.length - 1 ? { borderBottomWidth: 1, borderBottomColor: colors.border } : {},
+              ]}
+            >
               <Text style={[styles.itemNum, { color: colors.mutedForeground }]}>{i + 1}</Text>
-              <Text style={[styles.itemDesc, { color: colors.foreground }]}>{item.description}</Text>
-              <Text style={[styles.itemPrice, { color: colors.foreground }]}>
+              <Text style={[styles.itemDesc, { color: colors.foreground, flex: 2 }]}>{item.description}</Text>
+              <Text style={[styles.itemSmall, { color: colors.mutedForeground }]}>
+                {(item.quantity ?? 1).toString()}
+              </Text>
+              <Text style={[styles.itemSmall, { color: colors.mutedForeground }]}>
+                {formatCurrency(item.unitPrice ?? item.price, defaultCurrency)}
+              </Text>
+              <Text style={[styles.itemAmount, { color: colors.foreground }]}>
                 {formatCurrency(item.price, defaultCurrency)}
               </Text>
             </View>
@@ -218,13 +232,16 @@ const styles = StyleSheet.create({
   billLabel: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 },
   clientName: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   clientEmail: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  tableHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10 },
-  colNum: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", width: 32, textAlign: "center" },
-  colLabel: { flex: 1, fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase" },
-  itemRow: { flexDirection: "row", paddingHorizontal: 16, paddingVertical: 14, alignItems: "center" },
-  itemNum: { width: 32, fontSize: 13, fontFamily: "Inter_600SemiBold", textAlign: "center" },
-  itemDesc: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", marginRight: 12 },
-  itemPrice: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  tableHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, gap: 4 },
+  colNum: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", width: 24, textAlign: "center" },
+  colLabel: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase" },
+  colSmall: { width: 48, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", textAlign: "right" },
+  colAmount: { width: 64, fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase", textAlign: "right" },
+  itemRow: { flexDirection: "row", paddingHorizontal: 12, paddingVertical: 12, alignItems: "center", gap: 4 },
+  itemNum: { width: 24, fontSize: 12, fontFamily: "Inter_600SemiBold", textAlign: "center", color: "#64748b" },
+  itemDesc: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  itemSmall: { width: 48, fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "right" },
+  itemAmount: { width: 64, fontSize: 13, fontFamily: "Inter_600SemiBold", textAlign: "right" },
   totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 24, paddingVertical: 18 },
   totalLabel: { fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase" },
   totalAmount: { fontSize: 24, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },

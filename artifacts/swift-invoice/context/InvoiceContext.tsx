@@ -10,7 +10,9 @@ import React, {
 export interface InvoiceItem {
   id: string;
   description: string;
-  price: number;
+  quantity: number;
+  unitPrice: number;
+  price: number; // quantity × unitPrice
 }
 
 export interface Invoice {
