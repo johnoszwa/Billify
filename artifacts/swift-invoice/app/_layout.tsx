@@ -14,6 +14,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { InvoiceProvider } from "@/context/InvoiceContext";
+import { TierProvider } from "@/context/TierContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -51,13 +52,15 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
-        <InvoiceProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <RootLayoutNav />
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </InvoiceProvider>
+        <TierProvider>
+          <InvoiceProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <KeyboardProvider>
+                <RootLayoutNav />
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </InvoiceProvider>
+        </TierProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
   );
