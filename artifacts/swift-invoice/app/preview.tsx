@@ -1,12 +1,16 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Linking from "expo-linking";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import React, { useState } from "react";
 import {
   Alert,
+  Animated,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,6 +28,8 @@ export default function PreviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { invoices, isProUser, defaultCurrency } = useInvoice();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showShareSheet, setShowShareSheet] = useState(false);
+  const [pdfUri, setPdfUri] = useState<string | null>(null);
 
   const invoice = invoices.find((inv) => inv.id === id);
 
@@ -40,65 +46,135 @@ export default function PreviewScreen() {
     );
   }
 
-  async function handleShare() {
-    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  async function generatePDF(): Promise<string | null> {
     setIsGenerating(true);
     try {
       const html = generatePDFHTML(invoice!, defaultCurrency, isProUser);
       const { uri } = await Print.printToFileAsync({ html, base64: false });
-
-      if (!isProUser) {
-        Alert.alert(
-          "Upgrade to Pro",
-          "Remove the watermark and unlock unlimited invoices.",
-          [
-            { text: "Share Anyway", onPress: () => shareFile(uri) },
-            {
-              text: "Upgrade",
-              style: "default",
-              onPress: () => {
-                router.push("/paywall");
-              },
-            },
-          ]
-        );
-      } else {
-        await shareFile(uri);
-      }
-    } catch (e) {
+      setPdfUri(uri);
+      return uri;
+    } catch {
       Alert.alert("Error", "Could not generate PDF. Please try again.");
+      return null;
     } finally {
       setIsGenerating(false);
     }
   }
 
-  async function shareFile(uri: string) {
-    if (Platform.OS === "web") {
-      Alert.alert("PDF Ready", "PDF sharing is available on mobile devices.");
+  async function handleOpenShareSheet() {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (!isProUser) {
+      Alert.alert(
+        "Upgrade to Pro",
+        "Remove the watermark from all exported PDFs.",
+        [
+          {
+            text: "Share with Watermark",
+            onPress: () => setShowShareSheet(true),
+          },
+          {
+            text: "Upgrade",
+            style: "default",
+            onPress: () => router.push("/paywall"),
+          },
+        ]
+      );
       return;
     }
+    setShowShareSheet(true);
+  }
+
+  async function shareViaWhatsApp() {
+    setShowShareSheet(false);
+    const uri = pdfUri ?? (await generatePDF());
+    if (!uri) return;
+
+    if (Platform.OS === "web") {
+      window.alert("PDF sharing is available on the Billify mobile app.");
+      return;
+    }
+
+    const canShare = await Sharing.isAvailableAsync();
+    if (!canShare) {
+      Alert.alert("Sharing not available", "Your device does not support sharing.");
+      return;
+    }
+
+    await Sharing.shareAsync(uri, {
+      mimeType: "application/pdf",
+      dialogTitle: `Share Invoice ${invoice!.invoiceNumber} via WhatsApp`,
+      UTI: "com.adobe.pdf",
+    });
+  }
+
+  async function shareViaEmail() {
+    setShowShareSheet(false);
+    const uri = pdfUri ?? (await generatePDF());
+    if (!uri) return;
+
+    if (Platform.OS === "web") {
+      const subject = encodeURIComponent(`Invoice ${invoice!.invoiceNumber}`);
+      const body = encodeURIComponent(
+        `Hi ${invoice!.clientName},\n\nPlease find your invoice ${invoice!.invoiceNumber} attached.\n\nTotal: ${formatCurrency(invoice!.total, defaultCurrency)}\n\nThank you for your business.`
+      );
+      const to = invoice!.clientEmail ? encodeURIComponent(invoice!.clientEmail) : "";
+      Linking.openURL(`mailto:${to}?subject=${subject}&body=${body}`);
+      return;
+    }
+
+    // On mobile: open email app with details pre-filled, then share PDF
+    const subject = encodeURIComponent(`Invoice ${invoice!.invoiceNumber}`);
+    const body = encodeURIComponent(
+      `Hi ${invoice!.clientName},\n\nPlease find your invoice ${invoice!.invoiceNumber} attached.\n\nTotal: ${formatCurrency(invoice!.total, defaultCurrency)}\n\nThank you for your business.`
+    );
+    const to = invoice!.clientEmail ? encodeURIComponent(invoice!.clientEmail) : "";
+
+    const canOpenMail = await Linking.canOpenURL("mailto:");
+    if (canOpenMail) {
+      await Linking.openURL(`mailto:${to}?subject=${subject}&body=${body}`);
+    }
+
+    // Also share the PDF so they can attach it
+    await new Promise((r) => setTimeout(r, 600));
     const canShare = await Sharing.isAvailableAsync();
     if (canShare) {
       await Sharing.shareAsync(uri, {
         mimeType: "application/pdf",
-        dialogTitle: `Invoice ${invoice!.invoiceNumber}`,
+        dialogTitle: `Attach Invoice ${invoice!.invoiceNumber} to email`,
+        UTI: "com.adobe.pdf",
       });
-    } else {
-      Alert.alert("Sharing not available on this device.");
     }
   }
 
-  async function handlePrint() {
+  async function downloadPDF() {
+    setShowShareSheet(false);
+
     if (Platform.OS === "web") {
-      Alert.alert("Print available on mobile only.");
+      window.alert("PDF download is available on the Billify mobile app.");
       return;
     }
-    const html = generatePDFHTML(invoice!, defaultCurrency, isProUser);
-    await Print.printAsync({ html });
+
+    const uri = pdfUri ?? (await generatePDF());
+    if (!uri) return;
+
+    const canShare = await Sharing.isAvailableAsync();
+    if (!canShare) {
+      Alert.alert("Not available", "File saving is not supported on this device.");
+      return;
+    }
+
+    // Share with save-to-files / download intent
+    await Sharing.shareAsync(uri, {
+      mimeType: "application/pdf",
+      dialogTitle: `Save Invoice ${invoice!.invoiceNumber}.pdf`,
+      UTI: "com.adobe.pdf",
+    });
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 12, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="arrow-left" size={22} color={colors.foreground} />
@@ -112,6 +188,7 @@ export default function PreviewScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Invoice preview */}
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad + 100 }]}
         showsVerticalScrollIndicator={false}
@@ -183,26 +260,98 @@ export default function PreviewScreen() {
         </View>
       </ScrollView>
 
+      {/* Footer */}
       <View style={[styles.footer, { paddingBottom: bottomPad + 16, backgroundColor: colors.background, borderTopColor: colors.border }]}>
         <TouchableOpacity
           style={[styles.shareBtn, { backgroundColor: colors.primary }]}
-          onPress={handleShare}
+          onPress={handleOpenShareSheet}
           disabled={isGenerating}
         >
           <Feather name="share-2" size={18} color={colors.primaryForeground} />
           <Text style={[styles.shareBtnText, { color: colors.primaryForeground }]}>
-            {isGenerating ? "Generating PDF..." : "Share PDF"}
+            {isGenerating ? "Generating PDF…" : "Share / Export"}
           </Text>
         </TouchableOpacity>
-        {Platform.OS !== "web" && (
-          <TouchableOpacity
-            style={[styles.printBtn, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-            onPress={handlePrint}
-          >
-            <Feather name="printer" size={18} color={colors.foreground} />
-          </TouchableOpacity>
-        )}
       </View>
+
+      {/* Share bottom sheet */}
+      <Modal
+        visible={showShareSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowShareSheet(false)}
+      >
+        <Pressable style={styles.sheetOverlay} onPress={() => setShowShareSheet(false)} />
+        <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: bottomPad + 16 }]}>
+          <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+          <Text style={[styles.sheetTitle, { color: colors.foreground }]}>Share Invoice</Text>
+          <Text style={[styles.sheetSub, { color: colors.mutedForeground }]}>
+            {invoice.invoiceNumber} &bull; {formatCurrency(invoice.total, defaultCurrency)}
+          </Text>
+
+          <View style={styles.sheetOptions}>
+            {/* WhatsApp */}
+            <TouchableOpacity
+              style={[styles.sheetOption, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={shareViaWhatsApp}
+            >
+              <View style={[styles.sheetOptionIcon, { backgroundColor: "#dcfce7" }]}>
+                <Feather name="message-circle" size={22} color="#16a34a" />
+              </View>
+              <View style={styles.sheetOptionText}>
+                <Text style={[styles.sheetOptionTitle, { color: colors.foreground }]}>WhatsApp</Text>
+                <Text style={[styles.sheetOptionSub, { color: colors.mutedForeground }]}>
+                  Share PDF via WhatsApp
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
+
+            {/* Email */}
+            <TouchableOpacity
+              style={[styles.sheetOption, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={shareViaEmail}
+            >
+              <View style={[styles.sheetOptionIcon, { backgroundColor: "#dbeafe" }]}>
+                <Feather name="mail" size={22} color="#2563eb" />
+              </View>
+              <View style={styles.sheetOptionText}>
+                <Text style={[styles.sheetOptionTitle, { color: colors.foreground }]}>Email</Text>
+                <Text style={[styles.sheetOptionSub, { color: colors.mutedForeground }]}>
+                  {invoice.clientEmail
+                    ? `Send to ${invoice.clientEmail}`
+                    : "Open email client"}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
+
+            {/* Download / Save */}
+            <TouchableOpacity
+              style={[styles.sheetOption, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={downloadPDF}
+            >
+              <View style={[styles.sheetOptionIcon, { backgroundColor: "#fef3c7" }]}>
+                <Feather name="download" size={22} color="#d97706" />
+              </View>
+              <View style={styles.sheetOptionText}>
+                <Text style={[styles.sheetOptionTitle, { color: colors.foreground }]}>Download PDF</Text>
+                <Text style={[styles.sheetOptionSub, { color: colors.mutedForeground }]}>
+                  Save to Files / Downloads
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.sheetCancel, { backgroundColor: colors.muted }]}
+            onPress={() => setShowShareSheet(false)}
+          >
+            <Text style={[styles.sheetCancelText, { color: colors.foreground }]}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -250,11 +399,8 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingTop: 12,
     borderTopWidth: 1,
-    flexDirection: "row",
-    gap: 10,
   },
   shareBtn: {
-    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -263,13 +409,60 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   shareBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  printBtn: {
-    width: 52,
-    height: 52,
+  // Share sheet
+  sheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingTop: 12,
+    gap: 4,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.3,
+    marginBottom: 2,
+  },
+  sheetSub: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 16,
+  },
+  sheetOptions: { gap: 10, marginBottom: 12 },
+  sheetOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 14,
     borderRadius: 16,
+    borderWidth: 1,
+  },
+  sheetOptionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    alignSelf: "center",
   },
+  sheetOptionText: { flex: 1 },
+  sheetOptionTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  sheetOptionSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  sheetCancel: {
+    padding: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    marginTop: 4,
+  },
+  sheetCancelText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
