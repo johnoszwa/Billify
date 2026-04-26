@@ -4,8 +4,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
+  FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +18,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Invoice, InvoiceItem, useInvoice } from "@/context/InvoiceContext";
+import { useInventory } from "@/context/InventoryContext";
+import { useTier } from "@/context/TierContext";
 import { useColors } from "@/hooks/useColors";
 import { CURRENCY_SYMBOLS } from "@/utils/pdfGenerator";
 
@@ -28,6 +33,9 @@ function freshItem(): InvoiceItem {
 
 export default function CreateScreen() {
   const colors = useColors();
+  const { isPro } = useTier();
+  const { items: inventoryItems } = useInventory();
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { invoices, addInvoice, updateInvoice, generateInvoiceNumber, defaultCurrency } =
@@ -83,6 +91,22 @@ export default function CreateScreen() {
   function removeItem(itemId: string) {
     if (items.length === 1) return;
     setItems((prev) => prev.filter((item) => item.id !== itemId));
+  }
+
+  function pickFromInventory(invItem: typeof inventoryItems[0]) {
+    setShowInventoryModal(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const description = invItem.description
+      ? `${invItem.name}\n${invItem.description}`
+      : invItem.name;
+    const newItem: InvoiceItem = {
+      id: generateId(),
+      description,
+      quantity: 1,
+      unitPrice: invItem.unitPrice,
+      price: invItem.unitPrice,
+    };
+    setItems((prev) => [...prev, newItem]);
   }
 
   function handlePreview() {
@@ -202,10 +226,21 @@ export default function CreateScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>ITEMS</Text>
-              <TouchableOpacity onPress={addItem} style={styles.addItemBtn}>
-                <Feather name="plus" size={14} color={colors.primary} />
-                <Text style={[styles.addItemText, { color: colors.primary }]}>Add Item</Text>
-              </TouchableOpacity>
+              <View style={styles.sectionActions}>
+                {isPro && (
+                  <TouchableOpacity
+                    onPress={() => setShowInventoryModal(true)}
+                    style={styles.addItemBtn}
+                  >
+                    <Feather name="archive" size={14} color={colors.primary} />
+                    <Text style={[styles.addItemText, { color: colors.primary }]}>From Inventory</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={addItem} style={styles.addItemBtn}>
+                  <Feather name="plus" size={14} color={colors.primary} />
+                  <Text style={[styles.addItemText, { color: colors.primary }]}>Add Item</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {items.map((item, index) => (
@@ -334,6 +369,90 @@ export default function CreateScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Inventory picker modal */}
+      <Modal
+        visible={showInventoryModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowInventoryModal(false)}
+      >
+        <Pressable
+          style={styles.invOverlay}
+          onPress={() => setShowInventoryModal(false)}
+        />
+        <View
+          style={[
+            styles.invSheet,
+            { backgroundColor: colors.card, paddingBottom: bottomPad + 8 },
+          ]}
+        >
+          <View style={[styles.invHandle, { backgroundColor: colors.border }]} />
+          <View style={styles.invSheetHeader}>
+            <Text style={[styles.invSheetTitle, { color: colors.foreground }]}>
+              Pick from Inventory
+            </Text>
+            <TouchableOpacity onPress={() => setShowInventoryModal(false)}>
+              <Feather name="x" size={20} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
+          {inventoryItems.length === 0 ? (
+            <View style={styles.invEmpty}>
+              <Text style={[styles.invEmptyText, { color: colors.mutedForeground }]}>
+                No inventory items yet
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowInventoryModal(false);
+                  router.push("/inventory");
+                }}
+              >
+                <Text style={[styles.invEmptyLink, { color: colors.primary }]}>
+                  Add items in Inventory
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={inventoryItems}
+              keyExtractor={(inv) => inv.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.invList}
+              renderItem={({ item: inv }) => {
+                const sym = CURRENCY_SYMBOLS[inv.currency] ?? inv.currency + " ";
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.invRow,
+                      { borderBottomColor: colors.border, backgroundColor: colors.background },
+                    ]}
+                    onPress={() => pickFromInventory(inv)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.invRowIcon, { backgroundColor: colors.accent }]}>
+                      <Feather name="package" size={16} color={colors.primary} />
+                    </View>
+                    <View style={styles.invRowContent}>
+                      <Text style={[styles.invRowName, { color: colors.foreground }]} numberOfLines={1}>
+                        {inv.name}
+                      </Text>
+                      {inv.description ? (
+                        <Text style={[styles.invRowDesc, { color: colors.mutedForeground }]} numberOfLines={1}>
+                          {inv.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={[styles.invRowPrice, { color: colors.primary }]}>
+                      {sym}{inv.unitPrice.toFixed(2)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -359,6 +478,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  sectionActions: { flexDirection: "row", alignItems: "center", gap: 14 },
   addItemBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
   addItemText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   inputCard: { borderRadius: 16, borderWidth: 1, overflow: "hidden" },
@@ -428,4 +548,40 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   previewBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  invOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.45)" },
+  invSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "70%",
+  },
+  invHandle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 4 },
+  invSheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  invSheetTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
+  invList: { paddingHorizontal: 16, paddingBottom: 12 },
+  invRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  invRowIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  invRowContent: { flex: 1 },
+  invRowName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  invRowDesc: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  invRowPrice: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  invEmpty: { alignItems: "center", justifyContent: "center", paddingVertical: 40, gap: 10 },
+  invEmptyText: { fontSize: 15, fontFamily: "Inter_400Regular" },
+  invEmptyLink: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });
