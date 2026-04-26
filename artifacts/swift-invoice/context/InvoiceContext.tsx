@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useTier } from "@/context/TierContext";
 
 export interface InvoiceItem {
   id: string;
@@ -28,7 +29,7 @@ export interface Invoice {
 
 interface InvoiceContextType {
   invoices: Invoice[];
-  isProUser: boolean;
+  isProUser: boolean; // derived from TierContext — kept for backwards compat
   isLoading: boolean;
   addInvoice: (invoice: Invoice) => Promise<void>;
   updateInvoice: (invoice: Invoice) => Promise<void>;
@@ -43,14 +44,18 @@ interface InvoiceContextType {
 const InvoiceContext = createContext<InvoiceContextType | undefined>(undefined);
 
 const INVOICES_KEY = "@swift_invoice_invoices";
-const PRO_KEY = "@swift_invoice_pro";
 const CURRENCY_KEY = "@swift_invoice_currency";
 
 export function InvoiceProvider({ children }: { children: React.ReactNode }) {
+  const { isPro, setTier } = useTier();
+
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [isProUser, setIsProUser] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [defaultCurrency, setDefaultCurrencyState] = useState("USD");
+
+  // isProUser is kept in the context shape for backwards compat but is now
+  // derived from TierContext instead of managed as local state.
+  const isProUser = isPro;
 
   useEffect(() => {
     loadData();
@@ -58,34 +63,32 @@ export function InvoiceProvider({ children }: { children: React.ReactNode }) {
 
   async function loadData() {
     try {
-      const [invoicesJson, proJson, currencyJson] = await Promise.all([
+      const [invoicesJson, currencyJson] = await Promise.all([
         AsyncStorage.getItem(INVOICES_KEY),
-        AsyncStorage.getItem(PRO_KEY),
         AsyncStorage.getItem(CURRENCY_KEY),
       ]);
-
-      if (invoicesJson) {
-        setInvoices(JSON.parse(invoicesJson));
-      }
-      if (proJson) {
-        setIsProUser(JSON.parse(proJson));
-      }
-      if (currencyJson) {
-        setDefaultCurrencyState(JSON.parse(currencyJson));
-      }
-    } catch (e) {
+      if (invoicesJson) setInvoices(JSON.parse(invoicesJson));
+      if (currencyJson) setDefaultCurrencyState(JSON.parse(currencyJson));
+    } catch {
+      // ignore
     } finally {
       setIsLoading(false);
     }
   }
 
-  const addInvoice = useCallback(async (invoice: Invoice) => {
-    setInvoices((prev) => {
-      const updated = [invoice, ...prev];
-      AsyncStorage.setItem(INVOICES_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  }, []);
+  const addInvoice = useCallback(
+    async (invoice: Invoice) => {
+      if (!isPro && invoices.length >= 5) {
+        throw new Error("Upgrade to Pro for unlimited invoices");
+      }
+      setInvoices((prev) => {
+        const updated = [invoice, ...prev];
+        AsyncStorage.setItem(INVOICES_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    },
+    [isPro, invoices.length]
+  );
 
   const updateInvoice = useCallback(async (invoice: Invoice) => {
     setInvoices((prev) => {
@@ -104,16 +107,16 @@ export function InvoiceProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deleteAllData = useCallback(async () => {
-    await AsyncStorage.multiRemove([INVOICES_KEY, PRO_KEY, CURRENCY_KEY]);
+    await AsyncStorage.multiRemove([INVOICES_KEY, CURRENCY_KEY]);
     setInvoices([]);
-    setIsProUser(false);
     setDefaultCurrencyState("USD");
-  }, []);
+    await setTier("free");
+  }, [setTier]);
 
+  // upgradeToPro kept for backwards compat — delegates to TierContext
   const upgradeToPro = useCallback(async () => {
-    setIsProUser(true);
-    await AsyncStorage.setItem(PRO_KEY, JSON.stringify(true));
-  }, []);
+    await setTier("pro_device");
+  }, [setTier]);
 
   const setDefaultCurrency = useCallback(async (currency: string) => {
     setDefaultCurrencyState(currency);

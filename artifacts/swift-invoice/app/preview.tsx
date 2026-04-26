@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInvoice } from "@/context/InvoiceContext";
+import { useTier } from "@/context/TierContext";
 import { useColors } from "@/hooks/useColors";
 import { formatCurrency, generatePDFHTML } from "@/utils/pdfGenerator";
 
@@ -25,7 +26,8 @@ export default function PreviewScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { invoices, isProUser, defaultCurrency } = useInvoice();
+  const { invoices, defaultCurrency } = useInvoice();
+  const { isPro } = useTier();
   const [isGenerating, setIsGenerating] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [pdfUri, setPdfUri] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export default function PreviewScreen() {
   async function generatePDF(): Promise<string | null> {
     setIsGenerating(true);
     try {
-      const html = generatePDFHTML(invoice!, defaultCurrency, isProUser);
+      const html = generatePDFHTML(invoice!, defaultCurrency, isPro);
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       setPdfUri(uri);
       return uri;
@@ -232,7 +234,7 @@ export default function PreviewScreen() {
             </Text>
           </View>
 
-          {!isProUser && (
+          {!isPro && (
             <Text style={[styles.watermark, { color: colors.mutedForeground }]}>
               Generated with Billify &bull; Upgrade to Pro to remove watermark
             </Text>
