@@ -7,7 +7,6 @@ import * as Sharing from "expo-sharing";
 import React, { useState } from "react";
 import {
   Alert,
-  Animated,
   Modal,
   Platform,
   Pressable,
@@ -61,27 +60,8 @@ export default function PreviewScreen() {
     }
   }
 
-  async function handleOpenShareSheet() {
+  function handleOpenShareSheet() {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    if (!isProUser) {
-      Alert.alert(
-        "Upgrade to Pro",
-        "Remove the watermark from all exported PDFs.",
-        [
-          {
-            text: "Share with Watermark",
-            onPress: () => setShowShareSheet(true),
-          },
-          {
-            text: "Upgrade",
-            style: "default",
-            onPress: () => router.push("/paywall"),
-          },
-        ]
-      );
-      return;
-    }
     setShowShareSheet(true);
   }
 
