@@ -1,0 +1,40 @@
+In artifacts/swift-invoice, add multiple PDF invoice templates gated to isPro.
+
+Create utils/templates/ directory with three files:
+  - minimal.ts   — black and white, no decorative elements, compact
+  - professional.ts — current buildInvoiceHTML logic moved here, unchanged
+  - branded.ts   — same as professional but with a logo section at the top: 
+                   an <img> tag rendered if logoBase64 is passed, otherwise 
+                   a placeholder rectangle with "Your Logo" text
+
+Each file exports a function:
+  buildMinimalHTML(invoice: Invoice, currency: string, isProUser: boolean): string
+  buildProfessionalHTML(invoice: Invoice, currency: string, isProUser: boolean): string
+  buildBrandedHTML(invoice: Invoice, currency: string, isProUser: boolean, logoBase64?: string): string
+
+Update utils/invoiceTemplate.ts to re-export buildInvoiceHTML pointing to 
+buildProfessionalHTML so nothing breaks.
+
+Add a new export to utils/pdfGenerator.ts:
+  export type InvoiceTemplate = 'minimal' | 'professional' | 'branded'
+  export function generatePDFHTMLWithTemplate(
+    invoice: Invoice,
+    currency: string,
+    isProUser: boolean,
+    template: InvoiceTemplate,
+    logoBase64?: string
+  ): string
+
+In preview.tsx:
+- Import InvoiceTemplate, generatePDFHTMLWithTemplate from @/utils/pdfGenerator
+- Import useTier from context/TierContext.tsx
+- Add state: const [template, setTemplate] = useState<InvoiceTemplate>('professional')
+- Load/save selected template from AsyncStorage key '@swift_invoice_template' on mount
+- Above the share button in the footer, add a horizontal template picker row 
+  (only visible if isPro). Three pill buttons: "Minimal" | "Professional" | 
+  "Branded". Active pill uses colors.primary background + colors.primaryForeground 
+  text. Inactive uses colors.secondary + colors.foreground.
+- Replace the generatePDFHTML call inside the generatePDF() function with 
+  generatePDFHTMLWithTemplate(invoice, defaultCurrency, isPro, template, logoBase64)
+- Add state: const [logoBase64, setLogoBase64] = useState<string | undefined>()
+- Load logoBase64 from AsyncStorage key '@swift_invoice_logo' on mount

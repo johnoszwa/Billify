@@ -4,7 +4,8 @@ import * as Linking from "expo-linking";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import React, { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -20,7 +21,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInvoice } from "@/context/InvoiceContext";
 import { useTier } from "@/context/TierContext";
 import { useColors } from "@/hooks/useColors";
-import { formatCurrency, generatePDFHTML } from "@/utils/pdfGenerator";
+import {
+  formatCurrency,
+  generatePDFHTMLWithTemplate,
+  InvoiceTemplate,
+} from "@/utils/pdfGenerator";
 
 export default function PreviewScreen() {
   const colors = useColors();
@@ -31,6 +36,19 @@ export default function PreviewScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
   const [pdfUri, setPdfUri] = useState<string | null>(null);
+  const [template, setTemplate] = useState<InvoiceTemplate>("professional");
+  const [logoBase64, setLogoBase64] = useState<string | undefined>();
+
+  useEffect(() => {
+    AsyncStorage.multiGet(["@swift_invoice_template", "@swift_invoice_logo"]).then(
+      ([[, tpl], [, logo]]) => {
+        if (tpl === "minimal" || tpl === "professional" || tpl === "branded") {
+          setTemplate(tpl);
+        }
+        if (logo) setLogoBase64(logo);
+      }
+    );
+  }, []);
 
   const invoice = invoices.find((inv) => inv.id === id);
 
@@ -50,7 +68,7 @@ export default function PreviewScreen() {
   async function generatePDF(): Promise<string | null> {
     setIsGenerating(true);
     try {
-      const html = generatePDFHTML(invoice!, defaultCurrency, isPro);
+      const html = generatePDFHTMLWithTemplate(invoice!, defaultCurrency, isPro, template, logoBase64);
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       setPdfUri(uri);
       return uri;
@@ -60,6 +78,12 @@ export default function PreviewScreen() {
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  function selectTemplate(t: InvoiceTemplate) {
+    setTemplate(t);
+    setPdfUri(null);
+    AsyncStorage.setItem("@swift_invoice_template", t);
   }
 
   function handleOpenShareSheet() {
@@ -244,6 +268,35 @@ export default function PreviewScreen() {
 
       {/* Footer */}
       <View style={[styles.footer, { paddingBottom: bottomPad + 16, backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        {isPro && (
+          <View style={styles.templateRow}>
+            {(["minimal", "professional", "branded"] as InvoiceTemplate[]).map((t) => {
+              const active = template === t;
+              return (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => selectTemplate(t)}
+                  style={[
+                    styles.templatePill,
+                    {
+                      backgroundColor: active ? colors.primary : colors.secondary,
+                      borderColor: active ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.templatePillText,
+                      { color: active ? colors.primaryForeground : colors.foreground },
+                    ]}
+                  >
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
         <TouchableOpacity
           style={[styles.shareBtn, { backgroundColor: colors.primary }]}
           onPress={handleOpenShareSheet}
@@ -391,6 +444,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   shareBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  templateRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  templatePill: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  templatePillText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   // Share sheet
   sheetOverlay: {
     flex: 1,
