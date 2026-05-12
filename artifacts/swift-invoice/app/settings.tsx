@@ -280,6 +280,29 @@ export default function SettingsScreen() {
                 : <Feather name="lock" size={16} color={colors.mutedForeground} />
               }
             </TouchableOpacity>
+
+            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={isPro ? () => router.push("/dashboard") : () => router.push("/paywall")}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                  <Feather name="bar-chart-2" size={16} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.settingTitle, { color: colors.foreground }]}>Dashboard</Text>
+                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                    {isPro ? "Revenue analytics" : "Pro feature"}
+                  </Text>
+                </View>
+              </View>
+              {isPro
+                ? <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                : <Feather name="lock" size={16} color={colors.mutedForeground} />
+              }
+            </TouchableOpacity>
           </View>
         </View>
 

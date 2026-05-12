@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "expo-print": "^15.0.8",
-    "expo-sharing": "^14.0.8"
+    "expo-sharing": "^14.0.8",
+    "react-native-gifted-charts": "^1.4.76"
   }
 }

@@ -29,6 +29,7 @@ function RootLayoutNav() {
       <Stack.Screen name="settings" />
       <Stack.Screen name="inventory" />
       <Stack.Screen name="clients" />
+      <Stack.Screen name="dashboard" />
       <Stack.Screen
         name="paywall"
         options={{ presentation: "modal" }}

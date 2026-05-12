@@ -24,7 +24,7 @@ export interface Invoice {
   total: number;
   date: string;
   invoiceNumber: string;
-  status: "draft" | "sent";
+  status: "draft" | "sent" | "paid" | "overdue";
 }
 
 interface InvoiceContextType {
