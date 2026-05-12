@@ -8,6 +8,10 @@
     "scheme": "billify",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
+    "assetBundlePatterns": [
+      "**/*",
+      "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/*.ttf"
+    ],
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
