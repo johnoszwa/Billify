@@ -1,8 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
+import * as Sharing from "expo-sharing";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -16,16 +19,20 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useClients } from "@/context/ClientContext";
 import { useInvoice } from "@/context/InvoiceContext";
 import { useTier } from "@/context/TierContext";
+import { useInventory } from "@/context/InventoryContext";
 import { useColors } from "@/hooks/useColors";
 import { CURRENCIES, CURRENCY_SECTIONS } from "@/utils/currencies";
 
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { isProUser, defaultCurrency, setDefaultCurrency, deleteAllData, invoices } = useInvoice();
+  const { isProUser, defaultCurrency, setDefaultCurrency, deleteAllData, invoices, addInvoice } = useInvoice();
   const { isPro } = useTier();
+  const { items: inventoryItems, addInventoryItem } = useInventory();
+  const { clients, addClient } = useClients();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [logoSet, setLogoSet] = useState(false);
   const [businessName, setBusinessName] = useState("");
@@ -104,6 +111,83 @@ export default function SettingsScreen() {
     if (!confirmed) return;
     if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     await deleteAllData();
+  }
+
+  async function handleExport() {
+    try {
+      const payload = {
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        invoices,
+        clients,
+        inventory: inventoryItems,
+      };
+      const json = JSON.stringify(payload, null, 2);
+      const filename = `billify-backup-${Date.now()}.json`;
+      const fileUri = (FileSystem.documentDirectory ?? "") + filename;
+      await FileSystem.writeAsStringAsync(fileUri, json, { encoding: FileSystem.EncodingType.UTF8 });
+      await Sharing.shareAsync(fileUri, { mimeType: "application/json", dialogTitle: "Save backup" });
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      Alert.alert("Export failed", "Could not export your data. Please try again.");
+    }
+  }
+
+  async function handleImport() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: "application/json", copyToCacheDirectory: true });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+      const uri = result.assets[0].uri;
+      const raw = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.UTF8 });
+      const data = JSON.parse(raw);
+      if (data.version !== 2) {
+        Alert.alert("Invalid backup", "This file is not a valid Billify v2 backup.");
+        return;
+      }
+
+      const existingInvoiceIds = new Set(invoices.map((i) => i.id));
+      const existingClientIds = new Set(clients.map((c) => c.id));
+      const existingItemIds = new Set(inventoryItems.map((i) => i.id));
+
+      let importedInvoices = 0;
+      let importedClients = 0;
+      let importedItems = 0;
+
+      if (Array.isArray(data.invoices)) {
+        for (const inv of data.invoices) {
+          if (!existingInvoiceIds.has(inv.id)) {
+            await addInvoice(inv);
+            importedInvoices++;
+          }
+        }
+      }
+      if (Array.isArray(data.clients)) {
+        for (const client of data.clients) {
+          if (!existingClientIds.has(client.id)) {
+            await addClient(client);
+            importedClients++;
+          }
+        }
+      }
+      if (Array.isArray(data.inventory)) {
+        for (const item of data.inventory) {
+          if (!existingItemIds.has(item.id)) {
+            await addInventoryItem(item);
+            importedItems++;
+          }
+        }
+      }
+
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        "Import complete",
+        `Added ${importedInvoices} invoice${importedInvoices !== 1 ? "s" : ""}, ` +
+        `${importedClients} client${importedClients !== 1 ? "s" : ""}, ` +
+        `${importedItems} inventory item${importedItems !== 1 ? "s" : ""}.`
+      );
+    } catch (e) {
+      Alert.alert("Import failed", "Could not read the backup file. Make sure it is a valid Billify backup.");
+    }
   }
 
   const selectedCurrency = CURRENCIES.find((c) => c.code === defaultCurrency);
@@ -223,6 +307,55 @@ export default function SettingsScreen() {
                   <Text style={[styles.settingTitle, { color: colors.foreground }]}>Business Name</Text>
                   <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
                     {isPro ? (businessName || "Tap to set (replaces Billify)") : "Pro feature"}
+                  </Text>
+                </View>
+              </View>
+              {isPro
+                ? <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                : <Feather name="lock" size={16} color={colors.mutedForeground} />
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>BACKUP</Text>
+          <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={isPro ? handleExport : () => router.push("/paywall")}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                  <Feather name="upload" size={16} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.settingTitle, { color: colors.foreground }]}>Export Data</Text>
+                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                    {isPro ? "Save backup file" : "Pro feature"}
+                  </Text>
+                </View>
+              </View>
+              {isPro
+                ? <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                : <Feather name="lock" size={16} color={colors.mutedForeground} />
+              }
+            </TouchableOpacity>
+
+            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={isPro ? handleImport : () => router.push("/paywall")}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                  <Feather name="download" size={16} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.settingTitle, { color: colors.foreground }]}>Import Data</Text>
+                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                    {isPro ? "Restore from backup" : "Pro feature"}
                   </Text>
                 </View>
               </View>
