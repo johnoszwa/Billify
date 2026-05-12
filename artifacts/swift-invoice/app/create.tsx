@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Invoice, InvoiceItem, useInvoice } from "@/context/InvoiceContext";
+import { useClients } from "@/context/ClientContext";
 import { useInventory } from "@/context/InventoryContext";
 import { useTier } from "@/context/TierContext";
 import { useColors } from "@/hooks/useColors";
@@ -35,7 +36,9 @@ export default function CreateScreen() {
   const colors = useColors();
   const { isPro } = useTier();
   const { items: inventoryItems } = useInventory();
+  const { clients } = useClients();
   const [showInventoryModal, setShowInventoryModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { invoices, addInvoice, updateInvoice, generateInvoiceNumber, defaultCurrency } =
@@ -189,7 +192,18 @@ export default function CreateScreen() {
         >
           {/* CLIENT */}
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>CLIENT</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>CLIENT</Text>
+              {isPro && (
+                <TouchableOpacity
+                  onPress={() => setShowClientModal(true)}
+                  style={styles.addItemBtn}
+                >
+                  <Feather name="users" size={14} color={colors.primary} />
+                  <Text style={[styles.addItemText, { color: colors.primary }]}>Select Client</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <View
               style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}
             >
@@ -449,6 +463,79 @@ export default function CreateScreen() {
                   </TouchableOpacity>
                 );
               }}
+            />
+          )}
+        </View>
+      </Modal>
+
+      {/* ── Client picker modal ── */}
+      <Modal
+        visible={showClientModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowClientModal(false)}
+      >
+        <Pressable style={styles.invOverlay} onPress={() => setShowClientModal(false)} />
+        <View style={[styles.invSheet, { backgroundColor: colors.card }]}>
+          <View style={[styles.invHandle, { backgroundColor: colors.border }]} />
+          <View style={styles.invSheetHeader}>
+            <Text style={[styles.invSheetTitle, { color: colors.foreground }]}>Select Client</Text>
+            <TouchableOpacity onPress={() => setShowClientModal(false)}>
+              <Feather name="x" size={20} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+          {clients.length === 0 ? (
+            <View style={styles.invEmpty}>
+              <Text style={[styles.invEmptyText, { color: colors.mutedForeground }]}>
+                No clients saved yet
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowClientModal(false);
+                  router.push("/clients");
+                }}
+              >
+                <Text style={[styles.invEmptyLink, { color: colors.primary }]}>
+                  Add clients in Address Book
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={clients}
+              keyExtractor={(c) => c.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.invList}
+              renderItem={({ item: client }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.invRow,
+                    { borderBottomColor: colors.border, backgroundColor: colors.background },
+                  ]}
+                  onPress={() => {
+                    setClientName(client.name);
+                    setClientEmail(client.email);
+                    setShowClientModal(false);
+                    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.invRowIcon, { backgroundColor: colors.accent }]}>
+                    <Feather name="user" size={16} color={colors.primary} />
+                  </View>
+                  <View style={styles.invRowContent}>
+                    <Text style={[styles.invRowName, { color: colors.foreground }]} numberOfLines={1}>
+                      {client.name}
+                    </Text>
+                    {client.email ? (
+                      <Text style={[styles.invRowDesc, { color: colors.mutedForeground }]} numberOfLines={1}>
+                        {client.email}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+                </TouchableOpacity>
+              )}
             />
           )}
         </View>

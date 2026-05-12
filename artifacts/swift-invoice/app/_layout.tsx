@@ -13,6 +13,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ClientProvider } from "@/context/ClientContext";
 import { InventoryProvider } from "@/context/InventoryContext";
 import { InvoiceProvider } from "@/context/InvoiceContext";
 import { TierProvider } from "@/context/TierContext";
@@ -27,6 +28,7 @@ function RootLayoutNav() {
       <Stack.Screen name="preview" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="inventory" />
+      <Stack.Screen name="clients" />
       <Stack.Screen
         name="paywall"
         options={{ presentation: "modal" }}
@@ -57,11 +59,13 @@ export default function RootLayout() {
         <TierProvider>
           <InvoiceProvider>
             <InventoryProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <KeyboardProvider>
-                  <RootLayoutNav />
-                </KeyboardProvider>
-              </GestureHandlerRootView>
+              <ClientProvider>
+                <GestureHandlerRootView style={{ flex: 1 }}>
+                  <KeyboardProvider>
+                    <RootLayoutNav />
+                  </KeyboardProvider>
+                </GestureHandlerRootView>
+              </ClientProvider>
             </InventoryProvider>
           </InvoiceProvider>
         </TierProvider>

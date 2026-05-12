@@ -235,6 +235,55 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>TOOLS</Text>
+          <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={isPro ? () => router.push("/inventory") : () => router.push("/paywall")}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                  <Feather name="archive" size={16} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.settingTitle, { color: colors.foreground }]}>Inventory</Text>
+                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                    {isPro ? "Manage products & services" : "Pro feature"}
+                  </Text>
+                </View>
+              </View>
+              {isPro
+                ? <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                : <Feather name="lock" size={16} color={colors.mutedForeground} />
+              }
+            </TouchableOpacity>
+
+            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={isPro ? () => router.push("/clients") : () => router.push("/paywall")}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                  <Feather name="users" size={16} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.settingTitle, { color: colors.foreground }]}>Clients</Text>
+                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                    {isPro ? "Address book" : "Pro feature"}
+                  </Text>
+                </View>
+              </View>
+              {isPro
+                ? <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                : <Feather name="lock" size={16} color={colors.mutedForeground} />
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>DATA</Text>
           <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.settingRow}>
