@@ -1,7 +1,9 @@
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Modal,
@@ -14,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useInvoice } from "@/context/InvoiceContext";
+import { useTier } from "@/context/TierContext";
 import { useColors } from "@/hooks/useColors";
 
 const CURRENCIES = [
@@ -117,7 +120,41 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { isProUser, defaultCurrency, setDefaultCurrency, deleteAllData, invoices } = useInvoice();
+  const { isPro } = useTier();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [logoSet, setLogoSet] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem("@swift_invoice_logo").then((val) => {
+      setLogoSet(!!val);
+    });
+  }, []);
+
+  async function handleLogoUpload() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", "Please allow access to your photo library to upload a logo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      base64: true,
+      quality: 0.5,
+    });
+    if (result.canceled) return;
+    const b64 = result.assets?.[0]?.base64;
+    if (!b64) return;
+    const dataUri = `data:image/jpeg;base64,${b64}`;
+    await AsyncStorage.setItem("@swift_invoice_logo", dataUri);
+    setLogoSet(true);
+    if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  async function handleRemoveLogo() {
+    await AsyncStorage.removeItem("@swift_invoice_logo");
+    setLogoSet(false);
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -203,6 +240,48 @@ export default function SettingsScreen() {
               </View>
               <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
             </TouchableOpacity>
+
+            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={isPro ? handleLogoUpload : () => router.push("/paywall")}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                  <Feather name="image" size={16} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.settingTitle, { color: colors.foreground }]}>Business Logo</Text>
+                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                    {isPro ? (logoSet ? "Logo set ✓" : "Tap to upload") : "Pro feature"}
+                  </Text>
+                </View>
+              </View>
+              {isPro
+                ? <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                : <Feather name="lock" size={16} color={colors.mutedForeground} />
+              }
+            </TouchableOpacity>
+
+            {isPro && logoSet && (
+              <>
+                <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+                <TouchableOpacity style={styles.settingRow} onPress={handleRemoveLogo}>
+                  <View style={styles.settingLeft}>
+                    <View style={[styles.settingIcon, { backgroundColor: "#fef2f2" }]}>
+                      <Feather name="x-circle" size={16} color={colors.destructive} />
+                    </View>
+                    <View>
+                      <Text style={[styles.settingTitle, { color: colors.destructive }]}>Remove Logo</Text>
+                      <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                        Clear logo from all invoices
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
