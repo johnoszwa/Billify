@@ -14,12 +14,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { InvoiceCard } from "@/components/InvoiceCard";
 import { useInvoice } from "@/context/InvoiceContext";
+import { useTier } from "@/context/TierContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { invoices, deleteInvoice, defaultCurrency } = useInvoice();
+  const { isPro } = useTier();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -47,19 +49,67 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: topPad + 12, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <View>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Invoices</Text>
-          <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-            {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => router.push("/settings")}
-          style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
-        >
-          <Feather name="settings" size={18} color={colors.foreground} />
-        </TouchableOpacity>
+      <View
+        style={[
+          styles.header,
+          { paddingTop: topPad + 12, backgroundColor: colors.background, borderBottomColor: colors.border },
+        ]}
+      >
+        {isPro ? (
+          /* Pro layout: [icon row] · [title centered] · [settings] */
+          <>
+            <View style={styles.proIconRow}>
+              <TouchableOpacity
+                onPress={() => router.push("/inventory")}
+                style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
+              >
+                <Feather name="package" size={18} color={colors.foreground} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push("/clients")}
+                style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
+              >
+                <Feather name="users" size={18} color={colors.foreground} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push("/dashboard")}
+                style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
+              >
+                <Feather name="bar-chart-2" size={18} color={colors.foreground} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.titleCenter}>
+              <Text style={[styles.headerTitle, { color: colors.foreground }]}>Invoices</Text>
+              <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+                {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => router.push("/settings")}
+              style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
+            >
+              <Feather name="settings" size={18} color={colors.foreground} />
+            </TouchableOpacity>
+          </>
+        ) : (
+          /* Free layout: identical to v1 */
+          <>
+            <View>
+              <Text style={[styles.headerTitle, { color: colors.foreground }]}>Invoices</Text>
+              <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+                {invoices.length} {invoices.length === 1 ? "invoice" : "invoices"}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push("/settings")}
+              style={[styles.iconBtn, { backgroundColor: colors.secondary }]}
+            >
+              <Feather name="settings" size={18} color={colors.foreground} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {invoices.length === 0 ? (
@@ -101,7 +151,10 @@ export default function HomeScreen() {
 
       {invoices.length > 0 && (
         <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary, bottom: (Platform.OS === "web" ? 34 : insets.bottom) + 24 }]}
+          style={[
+            styles.fab,
+            { backgroundColor: colors.primary, bottom: (Platform.OS === "web" ? 34 : insets.bottom) + 24 },
+          ]}
           onPress={handleNewInvoice}
         >
           <Feather name="plus" size={22} color={colors.primaryForeground} />
@@ -123,6 +176,18 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
+
+  /* Pro header slots */
+  proIconRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  titleCenter: {
+    alignItems: "center",
+  },
+
+  /* Shared */
   headerTitle: {
     fontSize: 28,
     fontFamily: "Inter_700Bold",
@@ -140,6 +205,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   list: {
     paddingTop: 16,
     paddingBottom: 100,
