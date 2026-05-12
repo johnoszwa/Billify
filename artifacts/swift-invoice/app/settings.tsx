@@ -26,27 +26,57 @@ import { useInventory } from "@/context/InventoryContext";
 import { useColors } from "@/hooks/useColors";
 import { CURRENCIES, CURRENCY_SECTIONS } from "@/utils/currencies";
 
+const PAYMENT_PROVIDERS = [
+  {
+    id: "stripe",
+    name: "Stripe",
+    subtitle: "Card • Apple Pay (iOS) • Google Pay (Android)",
+  },
+  {
+    id: "paystack",
+    name: "Paystack",
+    subtitle: "Card • Bank transfer • Mobile money — NG, GH, KE, ZA",
+  },
+  {
+    id: "flutterwave",
+    name: "Flutterwave",
+    subtitle: "Card • Bank transfer • Mobile money — Africa & global",
+  },
+];
+
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { isProUser, defaultCurrency, setDefaultCurrency, deleteAllData, invoices, addInvoice } = useInvoice();
-  const { isPro } = useTier();
+  const { isPro, isProCloud } = useTier();
   const { items: inventoryItems, addInventoryItem } = useInventory();
   const { clients, addClient } = useClients();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showPaymentPicker, setShowPaymentPicker] = useState(false);
+  const [paymentProvider, setPaymentProvider] = useState<string | null>(null);
   const [logoSet, setLogoSet] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [showNameEditor, setShowNameEditor] = useState(false);
   const [nameInput, setNameInput] = useState("");
 
   useEffect(() => {
-    AsyncStorage.multiGet(["@swift_invoice_logo", "@swift_invoice_business_name"]).then(
-      ([[, logo], [, name]]) => {
-        setLogoSet(!!logo);
-        if (name) setBusinessName(name);
-      }
-    );
+    AsyncStorage.multiGet([
+      "@swift_invoice_logo",
+      "@swift_invoice_business_name",
+      "@swift_invoice_payment_provider",
+    ]).then(([[, logo], [, name], [, provider]]) => {
+      setLogoSet(!!logo);
+      if (name) setBusinessName(name);
+      if (provider) setPaymentProvider(provider);
+    });
   }, []);
+
+  async function handleSelectPaymentProvider(id: string) {
+    await AsyncStorage.setItem("@swift_invoice_payment_provider", id);
+    setPaymentProvider(id);
+    setShowPaymentPicker(false);
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
 
   async function handleLogoUpload() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -440,6 +470,46 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>PRO CLOUD</Text>
+          <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            {isProCloud ? (
+              <TouchableOpacity
+                style={styles.settingRow}
+                onPress={() => setShowPaymentPicker(true)}
+              >
+                <View style={styles.settingLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                    <Feather name="credit-card" size={16} color={colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={[styles.settingTitle, { color: colors.foreground }]}>Payment Provider</Text>
+                    <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                      {paymentProvider
+                        ? PAYMENT_PROVIDERS.find((p) => p.id === paymentProvider)?.name ?? "Not set"
+                        : "Not set"}
+                    </Text>
+                  </View>
+                </View>
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                    <Feather name="credit-card" size={16} color={colors.primary} />
+                  </View>
+                  <View>
+                    <Text style={[styles.settingTitle, { color: colors.foreground }]}>Payment Provider</Text>
+                    <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>Pro Cloud feature</Text>
+                  </View>
+                </View>
+                <Feather name="lock" size={16} color={colors.mutedForeground} />
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>DATA</Text>
           <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.settingRow}>
@@ -504,7 +574,7 @@ export default function SettingsScreen() {
                 </View>
                 <View>
                   <Text style={[styles.settingTitle, { color: colors.foreground }]}>Version</Text>
-                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>1.0.0</Text>
+                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>2.0.0</Text>
                 </View>
               </View>
             </View>
@@ -562,6 +632,47 @@ export default function SettingsScreen() {
               <Text style={[styles.nameBtnText, { color: colors.primaryForeground }]}>Save</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </Modal>
+
+      {/* Pro Cloud only: payment provider routes to Stripe (+ Apple/Google Pay),
+          Paystack, or Flutterwave depending on user preference and invoice destination.
+          Apple Pay = iOS + Stripe only. Google Pay = Android + Stripe only.
+          Paystack and Flutterwave handle their own checkout flows server-side. */}
+      <Modal
+        visible={showPaymentPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPaymentPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowPaymentPicker(false)}
+        />
+        <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+          <Text style={[styles.modalTitle, { color: colors.foreground }]}>Payment Provider</Text>
+          {PAYMENT_PROVIDERS.map((provider) => {
+            const selected = paymentProvider === provider.id;
+            return (
+              <TouchableOpacity
+                key={provider.id}
+                style={[
+                  styles.currencyRow,
+                  { borderBottomColor: colors.border },
+                  selected && { backgroundColor: colors.accent },
+                ]}
+                onPress={() => handleSelectPaymentProvider(provider.id)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.currencyName, { color: colors.foreground }]}>{provider.name}</Text>
+                  <Text style={[styles.currencyCode, { color: colors.mutedForeground }]}>{provider.subtitle}</Text>
+                </View>
+                {selected && <Feather name="check" size={18} color={colors.primary} />}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </Modal>
 
