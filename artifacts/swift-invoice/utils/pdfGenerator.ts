@@ -41,18 +41,19 @@ export function generatePDFHTMLWithTemplate(
   currency: string,
   isProUser: boolean,
   template: InvoiceTemplate,
-  logoBase64?: string
+  logoBase64?: string,
+  businessName?: string
 ): string {
   if (!isProUser) {
     return buildProfessionalHTML(invoice, currency, isProUser);
   }
   switch (template) {
     case "minimal":
-      return buildMinimalHTML(invoice, currency, isProUser);
+      return buildMinimalHTML(invoice, currency, isProUser, businessName);
     case "branded":
-      return buildBrandedHTML(invoice, currency, isProUser, logoBase64);
+      return buildBrandedHTML(invoice, currency, isProUser, logoBase64, businessName);
     case "professional":
     default:
-      return buildProfessionalHTML(invoice, currency, isProUser);
+      return buildProfessionalHTML(invoice, currency, isProUser, businessName);
   }
 }

@@ -11,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -123,11 +124,17 @@ export default function SettingsScreen() {
   const { isPro } = useTier();
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [logoSet, setLogoSet] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [showNameEditor, setShowNameEditor] = useState(false);
+  const [nameInput, setNameInput] = useState("");
 
   useEffect(() => {
-    AsyncStorage.getItem("@swift_invoice_logo").then((val) => {
-      setLogoSet(!!val);
-    });
+    AsyncStorage.multiGet(["@swift_invoice_logo", "@swift_invoice_business_name"]).then(
+      ([[, logo], [, name]]) => {
+        setLogoSet(!!logo);
+        if (name) setBusinessName(name);
+      }
+    );
   }, []);
 
   async function handleLogoUpload() {
@@ -154,6 +161,19 @@ export default function SettingsScreen() {
     await AsyncStorage.removeItem("@swift_invoice_logo");
     setLogoSet(false);
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }
+
+  async function saveBusinessName() {
+    const trimmed = nameInput.trim();
+    if (trimmed) {
+      await AsyncStorage.setItem("@swift_invoice_business_name", trimmed);
+      setBusinessName(trimmed);
+    } else {
+      await AsyncStorage.removeItem("@swift_invoice_business_name");
+      setBusinessName("");
+    }
+    setShowNameEditor(false);
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -282,6 +302,31 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
               </>
             )}
+
+            <View style={[styles.rowDivider, { backgroundColor: colors.border }]} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={isPro
+                ? () => { setNameInput(businessName); setShowNameEditor(true); }
+                : () => router.push("/paywall")}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: colors.accent }]}>
+                  <Feather name="briefcase" size={16} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.settingTitle, { color: colors.foreground }]}>Business Name</Text>
+                  <Text style={[styles.settingValue, { color: colors.mutedForeground }]}>
+                    {isPro ? (businessName || "Tap to set (replaces Billify)") : "Pro feature"}
+                  </Text>
+                </View>
+              </View>
+              {isPro
+                ? <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                : <Feather name="lock" size={16} color={colors.mutedForeground} />
+              }
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -357,6 +402,59 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Business Name editor modal */}
+      <Modal
+        visible={showNameEditor}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowNameEditor(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowNameEditor(false)}
+        />
+        <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+          <Text style={[styles.modalTitle, { color: colors.foreground }]}>Business Name</Text>
+          <Text style={[styles.modalSub, { color: colors.mutedForeground }]}>
+            Replaces "Billify" on your PDF invoices
+          </Text>
+          <TextInput
+            style={[
+              styles.nameInput,
+              {
+                color: colors.foreground,
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+            ]}
+            placeholder="e.g. Acme Studio"
+            placeholderTextColor={colors.mutedForeground}
+            value={nameInput}
+            onChangeText={setNameInput}
+            autoCapitalize="words"
+            returnKeyType="done"
+            onSubmitEditing={saveBusinessName}
+            autoFocus
+          />
+          <View style={styles.nameActions}>
+            <TouchableOpacity
+              style={[styles.nameBtn, { backgroundColor: colors.muted }]}
+              onPress={() => setShowNameEditor(false)}
+            >
+              <Text style={[styles.nameBtnText, { color: colors.foreground }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.nameBtn, { backgroundColor: colors.primary, flex: 1.5 }]}
+              onPress={saveBusinessName}
+            >
+              <Text style={[styles.nameBtnText, { color: colors.primaryForeground }]}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showCurrencyPicker}
@@ -466,4 +564,22 @@ const styles = StyleSheet.create({
   currencySymbolText: { width: 36, fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
   currencyName: { fontSize: 15, fontFamily: "Inter_500Medium" },
   currencyCode: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
+  modalSub: { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 16 },
+  nameInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 16,
+  },
+  nameActions: { flexDirection: "row", gap: 10 },
+  nameBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  nameBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 });

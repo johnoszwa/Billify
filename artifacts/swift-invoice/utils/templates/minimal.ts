@@ -17,8 +17,10 @@ function escapeHtml(str: string): string {
 export function buildMinimalHTML(
   invoice: Invoice,
   currency: string,
-  isProUser: boolean
+  isProUser: boolean,
+  businessName?: string
 ): string {
+  const brandName = businessName || "Billify";
   const itemRows = invoice.items
     .map(
       (item, i) => `
@@ -83,7 +85,7 @@ export function buildMinimalHTML(
 <body>
 <div class="page">
   <div class="header">
-    <div class="logo">Billify</div>
+    <div class="logo">${brandName}</div>
     <div class="invoice-meta">
       <div class="invoice-title">INVOICE</div>
       <div class="invoice-number">${escapeHtml(invoice.invoiceNumber)}</div>

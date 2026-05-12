@@ -20,8 +20,10 @@ export function buildBrandedHTML(
   invoice: Invoice,
   currency: string,
   isProUser: boolean,
-  logoBase64?: string
+  logoBase64?: string,
+  businessName?: string
 ): string {
+  const brandName = businessName || "Billify";
   const logoSection = logoBase64
     ? `<img src="${logoBase64}" class="logo-img" alt="Logo" />`
     : `<div class="logo-placeholder"><span class="logo-placeholder-text">Your Logo</span></div>`;
@@ -107,7 +109,7 @@ export function buildBrandedHTML(
   <div class="logo-section">${logoSection}</div>
   <!-- Header -->
   <div class="header">
-    <div class="logo">Billify</div>
+    <div class="logo">${brandName}</div>
     <div class="invoice-meta">
       <div class="invoice-title">INVOICE</div>
       <div class="invoice-number">${escapeHtml(invoice.invoiceNumber)}</div>

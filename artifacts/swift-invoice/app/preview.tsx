@@ -38,16 +38,20 @@ export default function PreviewScreen() {
   const [pdfUri, setPdfUri] = useState<string | null>(null);
   const [template, setTemplate] = useState<InvoiceTemplate>("professional");
   const [logoBase64, setLogoBase64] = useState<string | undefined>();
+  const [businessName, setBusinessName] = useState<string | undefined>();
 
   useEffect(() => {
-    AsyncStorage.multiGet(["@swift_invoice_template", "@swift_invoice_logo"]).then(
-      ([[, tpl], [, logo]]) => {
-        if (tpl === "minimal" || tpl === "professional" || tpl === "branded") {
-          setTemplate(tpl);
-        }
-        if (logo) setLogoBase64(logo);
+    AsyncStorage.multiGet([
+      "@swift_invoice_template",
+      "@swift_invoice_logo",
+      "@swift_invoice_business_name",
+    ]).then(([[, tpl], [, logo], [, name]]) => {
+      if (tpl === "minimal" || tpl === "professional" || tpl === "branded") {
+        setTemplate(tpl);
       }
-    );
+      if (logo) setLogoBase64(logo);
+      if (name) setBusinessName(name);
+    });
   }, []);
 
   const invoice = invoices.find((inv) => inv.id === id);
@@ -68,7 +72,7 @@ export default function PreviewScreen() {
   async function generatePDF(): Promise<string | null> {
     setIsGenerating(true);
     try {
-      const html = generatePDFHTMLWithTemplate(invoice!, defaultCurrency, isPro, template, logoBase64);
+      const html = generatePDFHTMLWithTemplate(invoice!, defaultCurrency, isPro, template, logoBase64, businessName);
       const { uri } = await Print.printToFileAsync({ html, base64: false });
       setPdfUri(uri);
       return uri;
