@@ -21,96 +21,8 @@ import { useInvoice } from "@/context/InvoiceContext";
 import { InventoryItem, useInventory } from "@/context/InventoryContext";
 import { useTier } from "@/context/TierContext";
 import { useColors } from "@/hooks/useColors";
+import { CURRENCIES, CURRENCY_SECTIONS } from "@/utils/currencies";
 import { CURRENCY_SYMBOLS } from "@/utils/pdfGenerator";
-
-// ── Currency list (mirrors settings.tsx) ──────────────────────────────────
-const CURRENCIES = [
-  { code: "USD", name: "US Dollar", symbol: "$" },
-  { code: "EUR", name: "Euro", symbol: "€" },
-  { code: "GBP", name: "British Pound", symbol: "£" },
-  { code: "JPY", name: "Japanese Yen", symbol: "¥" },
-  { code: "CAD", name: "Canadian Dollar", symbol: "CA$" },
-  { code: "AUD", name: "Australian Dollar", symbol: "A$" },
-  { code: "CHF", name: "Swiss Franc", symbol: "CHF" },
-  { code: "CNY", name: "Chinese Yuan", symbol: "¥" },
-  { code: "HKD", name: "Hong Kong Dollar", symbol: "HK$" },
-  { code: "SGD", name: "Singapore Dollar", symbol: "S$" },
-  { code: "NZD", name: "New Zealand Dollar", symbol: "NZ$" },
-  { code: "SEK", name: "Swedish Krona", symbol: "kr" },
-  { code: "NOK", name: "Norwegian Krone", symbol: "kr" },
-  { code: "DKK", name: "Danish Krone", symbol: "kr" },
-  { code: "INR", name: "Indian Rupee", symbol: "₹" },
-  { code: "PKR", name: "Pakistani Rupee", symbol: "Rs" },
-  { code: "BDT", name: "Bangladeshi Taka", symbol: "৳" },
-  { code: "LKR", name: "Sri Lankan Rupee", symbol: "Rs" },
-  { code: "AED", name: "UAE Dirham", symbol: "د.إ" },
-  { code: "SAR", name: "Saudi Riyal", symbol: "﷼" },
-  { code: "QAR", name: "Qatari Riyal", symbol: "ر.ق" },
-  { code: "KWD", name: "Kuwaiti Dinar", symbol: "KD" },
-  { code: "BHD", name: "Bahraini Dinar", symbol: "BD" },
-  { code: "OMR", name: "Omani Rial", symbol: "ر.ع." },
-  { code: "ILS", name: "Israeli Shekel", symbol: "₪" },
-  { code: "TRY", name: "Turkish Lira", symbol: "₺" },
-  { code: "THB", name: "Thai Baht", symbol: "฿" },
-  { code: "MYR", name: "Malaysian Ringgit", symbol: "RM" },
-  { code: "IDR", name: "Indonesian Rupiah", symbol: "Rp" },
-  { code: "PHP", name: "Philippine Peso", symbol: "₱" },
-  { code: "VND", name: "Vietnamese Dong", symbol: "₫" },
-  { code: "KRW", name: "South Korean Won", symbol: "₩" },
-  { code: "BRL", name: "Brazilian Real", symbol: "R$" },
-  { code: "MXN", name: "Mexican Peso", symbol: "MX$" },
-  { code: "ARS", name: "Argentine Peso", symbol: "$" },
-  { code: "CLP", name: "Chilean Peso", symbol: "CLP$" },
-  { code: "COP", name: "Colombian Peso", symbol: "COL$" },
-  { code: "PEN", name: "Peruvian Sol", symbol: "S/" },
-  { code: "PLN", name: "Polish Zloty", symbol: "zł" },
-  { code: "CZK", name: "Czech Koruna", symbol: "Kč" },
-  { code: "HUF", name: "Hungarian Forint", symbol: "Ft" },
-  { code: "RON", name: "Romanian Leu", symbol: "lei" },
-  { code: "RUB", name: "Russian Ruble", symbol: "₽" },
-  { code: "UAH", name: "Ukrainian Hryvnia", symbol: "₴" },
-  { code: "NGN", name: "Nigerian Naira", symbol: "₦" },
-  { code: "GHS", name: "Ghanaian Cedi", symbol: "₵" },
-  { code: "XOF", name: "West African CFA Franc", symbol: "CFA" },
-  { code: "SLL", name: "Sierra Leonean Leone", symbol: "Le" },
-  { code: "GMD", name: "Gambian Dalasi", symbol: "D" },
-  { code: "GNF", name: "Guinean Franc", symbol: "FG" },
-  { code: "CVE", name: "Cape Verdean Escudo", symbol: "$" },
-  { code: "LRD", name: "Liberian Dollar", symbol: "L$" },
-  { code: "MRU", name: "Mauritanian Ouguiya", symbol: "UM" },
-  { code: "KES", name: "Kenyan Shilling", symbol: "KSh" },
-  { code: "TZS", name: "Tanzanian Shilling", symbol: "TSh" },
-  { code: "UGX", name: "Ugandan Shilling", symbol: "USh" },
-  { code: "ETB", name: "Ethiopian Birr", symbol: "Br" },
-  { code: "RWF", name: "Rwandan Franc", symbol: "RF" },
-  { code: "BIF", name: "Burundian Franc", symbol: "Fr" },
-  { code: "DJF", name: "Djiboutian Franc", symbol: "Fdj" },
-  { code: "ERN", name: "Eritrean Nakfa", symbol: "Nfk" },
-  { code: "SOS", name: "Somali Shilling", symbol: "Sh" },
-  { code: "MGA", name: "Malagasy Ariary", symbol: "Ar" },
-  { code: "SCR", name: "Seychellois Rupee", symbol: "₨" },
-  { code: "MUR", name: "Mauritian Rupee", symbol: "₨" },
-  { code: "KMF", name: "Comorian Franc", symbol: "CF" },
-  { code: "ZAR", name: "South African Rand", symbol: "R" },
-  { code: "ZMW", name: "Zambian Kwacha", symbol: "ZK" },
-  { code: "BWP", name: "Botswana Pula", symbol: "P" },
-  { code: "NAD", name: "Namibian Dollar", symbol: "N$" },
-  { code: "MWK", name: "Malawian Kwacha", symbol: "MK" },
-  { code: "ZWL", name: "Zimbabwean Dollar", symbol: "Z$" },
-  { code: "SZL", name: "Swazi Lilangeni", symbol: "L" },
-  { code: "LSL", name: "Lesotho Loti", symbol: "L" },
-  { code: "MOZ", name: "Mozambican Metical", symbol: "MT" },
-  { code: "AOA", name: "Angolan Kwanza", symbol: "Kz" },
-  { code: "XAF", name: "Central African CFA Franc", symbol: "FCFA" },
-  { code: "CDF", name: "Congolese Franc", symbol: "FC" },
-  { code: "STN", name: "São Tomé & Príncipe Dobra", symbol: "Db" },
-  { code: "EGP", name: "Egyptian Pound", symbol: "E£" },
-  { code: "MAD", name: "Moroccan Dirham", symbol: "MAD" },
-  { code: "TND", name: "Tunisian Dinar", symbol: "د.ت" },
-  { code: "DZD", name: "Algerian Dinar", symbol: "دج" },
-  { code: "LYD", name: "Libyan Dinar", symbol: "LD" },
-  { code: "SDG", name: "Sudanese Pound", symbol: "ج.س." },
-];
 
 function generateId() {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -444,29 +356,38 @@ export default function InventoryScreen() {
           <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>Select Currency</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
-            {CURRENCIES.map((currency) => (
-              <TouchableOpacity
-                key={currency.code}
-                style={[
-                  styles.currencyRow,
-                  { borderBottomColor: colors.border },
-                  currency.code === form.currency && { backgroundColor: colors.accent },
-                ]}
-                onPress={() => {
-                  setForm((f) => ({ ...f, currency: currency.code }));
-                  setShowCurrencyPicker(false);
-                  if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <Text style={[styles.currencySymbolText, { color: colors.primary }]}>{currency.symbol}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.currencyName, { color: colors.foreground }]}>{currency.name}</Text>
-                  <Text style={[styles.currencyCode, { color: colors.mutedForeground }]}>{currency.code}</Text>
+            {CURRENCY_SECTIONS.map((section) => (
+              <React.Fragment key={section.region}>
+                <View style={[styles.currencyRegion, { backgroundColor: colors.muted }]}>
+                  <Text style={[styles.currencyRegionText, { color: colors.mutedForeground }]}>
+                    {section.region.toUpperCase()}
+                  </Text>
                 </View>
-                {currency.code === form.currency && (
-                  <Feather name="check" size={18} color={colors.primary} />
-                )}
-              </TouchableOpacity>
+                {section.currencies.map((currency) => (
+                  <TouchableOpacity
+                    key={currency.code}
+                    style={[
+                      styles.currencyRow,
+                      { borderBottomColor: colors.border },
+                      currency.code === form.currency && { backgroundColor: colors.accent },
+                    ]}
+                    onPress={() => {
+                      setForm((f) => ({ ...f, currency: currency.code }));
+                      setShowCurrencyPicker(false);
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                  >
+                    <Text style={[styles.currencySymbolText, { color: colors.primary }]}>{currency.symbol}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.currencyName, { color: colors.foreground }]}>{currency.name}</Text>
+                      <Text style={[styles.currencyCode, { color: colors.mutedForeground }]}>{currency.code}</Text>
+                    </View>
+                    {currency.code === form.currency && (
+                      <Feather name="check" size={18} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </React.Fragment>
             ))}
           </ScrollView>
         </View>
@@ -637,6 +558,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 2,
   },
+  currencyRegion: { paddingHorizontal: 12, paddingVertical: 6 },
+  currencyRegionText: { fontSize: 10, fontFamily: "Inter_700Bold", letterSpacing: 1 },
   currencySymbolText: { width: 36, fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center" },
   currencyName: { fontSize: 14, fontFamily: "Inter_500Medium" },
   currencyCode: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
