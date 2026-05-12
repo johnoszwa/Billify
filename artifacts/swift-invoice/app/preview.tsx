@@ -31,7 +31,7 @@ export default function PreviewScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { invoices, defaultCurrency } = useInvoice();
+  const { invoices, defaultCurrency, updateInvoice } = useInvoice();
   const { isPro } = useTier();
   const [isGenerating, setIsGenerating] = useState(false);
   const [showShareSheet, setShowShareSheet] = useState(false);
@@ -82,6 +82,19 @@ export default function PreviewScreen() {
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  const STATUS_OPTIONS = [
+    { value: "draft",   label: "Draft",   color: "#64748b", bg: "#f1f5f9" },
+    { value: "sent",    label: "Sent",    color: "#2563eb", bg: "#dbeafe" },
+    { value: "paid",    label: "Paid",    color: "#16a34a", bg: "#dcfce7" },
+    { value: "overdue", label: "Overdue", color: "#dc2626", bg: "#fee2e2" },
+  ] as const;
+
+  async function handleStatusChange(status: typeof STATUS_OPTIONS[number]["value"]) {
+    if (!invoice || invoice.status === status) return;
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await updateInvoice({ ...invoice, status });
   }
 
   function selectTemplate(t: InvoiceTemplate) {
@@ -196,6 +209,31 @@ export default function PreviewScreen() {
         >
           <Feather name="edit-2" size={16} color={colors.foreground} />
         </TouchableOpacity>
+      </View>
+
+      {/* Status picker */}
+      <View style={[styles.statusRow, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+        {STATUS_OPTIONS.map((opt) => {
+          const active = invoice.status === opt.value;
+          return (
+            <TouchableOpacity
+              key={opt.value}
+              style={[
+                styles.statusPill,
+                { backgroundColor: active ? opt.bg : colors.secondary, borderColor: active ? opt.color : colors.border },
+              ]}
+              onPress={() => handleStatusChange(opt.value)}
+              activeOpacity={0.7}
+            >
+              {active && (
+                <View style={[styles.statusDot, { backgroundColor: opt.color }]} />
+              )}
+              <Text style={[styles.statusPillText, { color: active ? opt.color : colors.mutedForeground }]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Invoice preview */}
@@ -434,6 +472,32 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 13, fontFamily: "Inter_700Bold", letterSpacing: 1, textTransform: "uppercase" },
   totalAmount: { fontSize: 24, fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
   watermark: { textAlign: "center", fontSize: 11, fontFamily: "Inter_400Regular", padding: 16 },
+  statusRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  statusPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusPillText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+  },
   footer: {
     padding: 16,
     paddingTop: 12,

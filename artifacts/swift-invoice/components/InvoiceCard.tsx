@@ -42,6 +42,15 @@ export function InvoiceCard({ invoice, currency, onPress, onDelete }: Props) {
     onDelete();
   }
 
+  const STATUS_CONFIG = {
+    draft:   { label: "Draft",   color: "#64748b", bg: "#f1f5f9" },
+    sent:    { label: "Sent",    color: "#2563eb", bg: "#dbeafe" },
+    paid:    { label: "Paid",    color: "#16a34a", bg: "#dcfce7" },
+    overdue: { label: "Overdue", color: "#dc2626", bg: "#fee2e2" },
+  } as const;
+
+  const statusCfg = STATUS_CONFIG[invoice.status ?? "draft"];
+
   const initials = invoice.clientName
     .split(" ")
     .slice(0, 2)
@@ -71,9 +80,16 @@ export function InvoiceCard({ invoice, currency, onPress, onDelete }: Props) {
           <Text style={[styles.clientName, { color: colors.foreground }]} numberOfLines={1}>
             {invoice.clientName}
           </Text>
-          <Text style={[styles.invoiceNum, { color: colors.mutedForeground }]}>
-            {invoice.invoiceNumber} &bull; {invoice.date}
-          </Text>
+          <View style={styles.subRow}>
+            <Text style={[styles.invoiceNum, { color: colors.mutedForeground }]}>
+              {invoice.invoiceNumber} &bull; {invoice.date}
+            </Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
+              <Text style={[styles.statusText, { color: statusCfg.color }]}>
+                {statusCfg.label}
+              </Text>
+            </View>
+          </View>
         </View>
 
         <Text style={[styles.amount, { color: colors.primary }]}>
@@ -125,6 +141,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     gap: 3,
+  },
+  subRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  statusBadge: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  statusText: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
   },
   clientName: {
     fontSize: 15,
