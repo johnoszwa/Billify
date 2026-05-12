@@ -1,0 +1,56 @@
+In artifacts/swift-invoice, rewrite app/paywall.tsx completely.
+
+Replace the current single-tier paywall with a two-card layout. Keep all 
+existing imports. Add import useTier from context/TierContext.tsx.
+
+Remove the BENEFITS array and both existing button handlers.
+
+The screen layout from top to bottom:
+  - Close button (keep existing closeBtn style)
+  - Icon badge (keep existing iconBadge style, Feather "star")
+  - Title: "Go Pro" 
+  - Subtitle: "Choose the plan that fits you"
+
+Card 1 — Pro Device ($9.99 one-time):
+  Background: colors.card, border: colors.border, borderRadius: 20, borderWidth: 1
+  Header row: "Pro" label (Inter_700Bold, colors.foreground) + "$9.99 one-time" 
+              badge (colors.accent background, colors.primary text)
+  Feature list (Feather "check" in colors.success, Inter_400Regular, 14pt):
+    - Unlimited invoices, no watermark
+    - 3 invoice templates + logo upload
+    - All currencies
+    - Inventory management
+    - Client address book
+    - Revenue dashboard
+    - Manual data export & import
+  CTA button: backgroundColor colors.secondary, label "Buy Pro — $9.99", 
+              Inter_700Bold, colors.foreground
+  onPress: call setTier('pro_device') from useTier(), then show Alert 
+    "Pro Unlocked" "All Pro features are now active." with Done → router.back()
+  Note in a comment: // TODO: replace setTier stub with RevenueCat purchase
+
+Card 2 — Pro Cloud ($4.99/mo or $39.99/yr):
+  Background: colors.primary, borderRadius: 20
+  "MOST POPULAR" label top-right: small pill, white background, 
+    colors.primary text, Inter_700Bold, 10pt
+  Header row: "Pro Cloud" (Inter_700Bold, white) + "$4.99/mo" badge 
+              (semi-transparent white background, white text)
+  Feature list (same check icon in white, white text):
+    - Everything in Pro
+    - Cloud backup & multi-device sync
+    - Send invoices by email
+    - Payment links (Stripe, Paystack, Flutterwave)
+    - Apple Pay & Google Pay via Stripe
+    - Invoice viewed tracking
+    - Recurring invoices
+  CTA button: backgroundColor white, label "Coming Soon", 
+              colors.primary text, disabled, opacity 0.7
+  Below button: small text "Join the waitlist →" in white, 
+                Inter_400Regular, 12pt — onPress open mailto:support@billify.app
+
+Disclaimer at bottom (unchanged): 
+  "No ads • No tracking • Cancel anytime"
+  colors.mutedForeground, Inter_400Regular, 12pt, centered
+
+Match all spacing, borderRadius, fontFamily values to the existing paywall.tsx 
+styles pattern exactly.
